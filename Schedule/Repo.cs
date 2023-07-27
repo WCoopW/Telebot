@@ -14,11 +14,10 @@ namespace TelegramBot.Schedule
 
     internal class Repo
     {
-        public async Task<Root> ScheduleGet(string station)
+        public async Task<Root> ScheduleGet()
         {
             var client = new HttpClient();
-            var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.rasp.yandex.net/v3.0/schedule/?apikey=37a6c983-d404-4790-9c5d-4b795e3f62f9&station={station}&transport_types=plane&system=iata"); 
-            request.Headers.Add("Authorization", "Bearer ZDk4ODM3NzktMjAz");
+            var request = new HttpRequestMessage(HttpMethod.Get, "https://rickandmortyapi.com/api/character"); 
             var content = new MultipartFormDataContent();
             request.Content = content;
             var response = await client.SendAsync(request);

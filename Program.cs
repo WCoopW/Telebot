@@ -43,17 +43,10 @@ namespace TelegramBot
                 if (callback.Data == "LED")
                 {
                     Message sentMessage = await client.SendTextMessageAsync(chatId: callback.From.Id,
-                        text: "Укажите город прибытия",
+                        text: "Укажите имя персонажа",
                         replyMarkup: new ForceReplyMarkup { Selective = true });
-
                 }
-                if (callback.Data == "SVO")
-                {
-                    Message sentMessage = await client.SendTextMessageAsync(chatId: callback.From.Id,
-                        text: "Укажите город прибытия",
-                        replyMarkup: new ForceReplyMarkup { Selective = true });
-
-                }
+               
             }
            
            
@@ -65,13 +58,34 @@ namespace TelegramBot
                     Console.WriteLine("skipping old update");
                     return;
                 }
-                if (message.ReplyToMessage != null && message.ReplyToMessage.Text.Contains("Укажите город прибытия"))
+                if (message.ReplyToMessage != null && message.ReplyToMessage.Text.Contains("Укажите имя персонажа"))
                 {
-                    var city = message.Text;
-                    Message sentMessage = await client.SendTextMessageAsync(
+                    var b = new Repo();
+                    var characters = b.ScheduleGet();
+                    var name = message.Text;
+                    var character = SearchPerson(name, characters);
+                    if (character != null)
+                    {
+                        Message sentMessage = await client.SendPhotoAsync(
                         chatId: message.Chat.Id,
-                        text: "Затычка.",
+                        photo: InputFile.FromUri($"{character.image}"),
                         cancellationToken: token);
+                        sentMessage = await client.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: $"Имя: {character.name}\nПол: {character.gender}\nСтатус: {character.status}\nМесто обитания: {character.origin.name}",
+                            replyMarkup: MainButtons(),
+                            cancellationToken: token);
+                    }
+                    else
+                    {
+                        Message sentMessage = await client.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: "Такого персонажа нет. Хотите попробовать снова?",
+                            replyMarkup: FailedSearchCharacter(),
+                            cancellationToken: token);
+                            
+                    }
+                   
 
                     return;
                 }
@@ -103,9 +117,47 @@ namespace TelegramBot
 
         }
 
+        private static IReplyMarkup? FailedSearchCharacter()
+        {
+            ReplyKeyboardMarkup replyKeyboardMarkup = new(new[]
+         {
+             new KeyboardButton[] { "Да, ввести имя заново"},
+             new KeyboardButton[] { "Нет, выйти в главное меню"},
+            })
+            {
+                ResizeKeyboard = true
+            };
+            return replyKeyboardMarkup;
+        }
+
+        private static Result SearchPerson(string? name, Task<Root> characters)
+        {
+            foreach(var character in characters.Result.results)
+            {
+                if (name == character.name) {
+                    return character;
+                }
+               
+            }
+            return null;
+        }
+
         private static async Task WorkWithTextCommand(ITelegramBotClient client, Message message, CancellationToken token)
         {
-            
+            if (message.Text.Contains("Да, ввести имя заново"))
+            {
+                Message sentMessage = await client.SendTextMessageAsync(chatId: message.Chat.Id,
+                      text: "Укажите имя персонажа",
+                      replyMarkup: new ForceReplyMarkup { Selective = true });
+            }
+            if (message.Text.Contains("Нет, выйти в главное меню")) 
+            {
+                Message sentMessage = await client.SendTextMessageAsync(
+               chatId: message.Chat.Id,
+               text: "Выберите действие",
+               replyMarkup: MainButtons(),
+               cancellationToken: token);
+            }
             if (message.Text.ToLower().Contains("start"))
             {
                 Message sentMessage = await client.SendTextMessageAsync(
@@ -120,16 +172,12 @@ namespace TelegramBot
                 {
                 new []
                 {
-                 InlineKeyboardButton.WithCallbackData(text: "Санкт-Петербург (LED)", callbackData: "LED"),
-                },
-                    new[]
-                    {
-                        InlineKeyboardButton.WithCallbackData(text: "Москва Шереметьево (SVO)", callbackData: "SVO"),
-                    }
+                 InlineKeyboardButton.WithCallbackData(text: "Поиск персонажа по имени", callbackData: "LED"),
+                } 
                 });
                 Message sentMessage = await client.SendTextMessageAsync(
               chatId: message.Chat.Id,
-              text: "Выберите пункт вылета",
+              text: "Выберите что вы хотите сделать",
               replyMarkup: inlineKeyboard,
               cancellationToken: token
              
